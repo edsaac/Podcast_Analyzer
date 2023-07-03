@@ -94,3 +94,22 @@ def prepare_transcript_for_book_extraction(transcript_df):
     })
     
     return grouped_transcript_df
+
+
+def add_entity_type_columns(transcript_df, entity_types):
+    """
+    This function creates new columns in a dataframe for each specified entity type.
+    
+    Parameters:
+    transcript_df (pd.DataFrame): The dataframe to modify.
+    entity_types (List[str]): The entity types to create columns for.
+    
+    Returns:
+    transcript_df (pd.DataFrame): The modified dataframe with new entity type columns.
+    """
+    # Add columns for each entity type
+    for ent_type in entity_types:
+        transcript_df[ent_type.lower()] = transcript_df["named_entities"].apply(lambda x: \
+                                                                                [entity.split('/')[0] for entity in x if entity.split('/')[1] == ent_type])
+    return transcript_df
+
