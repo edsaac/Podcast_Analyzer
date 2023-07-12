@@ -1,5 +1,103 @@
 """prepare and download data if needed"""
 import pandas as pd
+import re 
+import os
+import yt_dlp
+from pydub import AudioSegment
+import openai
+
+def clean_title(title):
+    """
+    Cleans a video title for use as a filename.
+
+    Args:
+        title (str): The original title to be cleaned.
+
+    Returns:
+        str: The cleaned title, safe for use as a filename.
+    """
+    title = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', title)
+    title = re.sub(r'\|.*?\d+', '', title)
+    title = title.rstrip().replace(' ', '_').replace(':', '_').replace('&','and').lower()
+    title = re.sub(r'[^a-zA-Z0-9_]', '', title)
+    return title
+
+def download_audio(link, quality='64'):
+    """
+    Download audio from a YouTube video, convert to MP3, and save to disk.
+
+    Args:
+        link (str): YouTube video URL.
+        quality (str): Desired audio quality in kbps. Default is '192'.
+
+    Returns:
+        str: Path of the saved MP3 file.
+    """
+    with yt_dlp.YoutubeDL({
+        'format': 'bestaudio/best',
+        'outtmpl': 'data/audio/%(id)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': quality,
+        }],
+        'ffmpeg_location': '.venv/ffmpeg-master-latest-win64-gpl/bin'  # Add this line
+    }) as video:
+        info_dict = video.extract_info(link, download=True)
+        video_id = info_dict['id']
+        video_title = info_dict['title']
+
+        title = clean_title(video_title)
+        original_file_path = 'data/audio/' + video_id + '.mp3'
+        new_file_path = 'data/audio/' + title + '.mp3'
+        os.rename(original_file_path, new_file_path)
+
+    return new_file_path
+
+
+def transcribe_audio(audio_file_path, chunk_length_min=20):
+    """
+    Transcribe the audio file at the given path using OpenAI's Whisper ASR system.
+
+    Args:
+        audio_file_path (str): Path to the audio file to transcribe.
+        chunk_length_min (float): Length in minutes for each chunk of the audio file. Default is 45 minutes.
+
+    Returns:
+        str: The file name containing the combined transcription of all chunks of the audio file.
+    """
+    if not os.path.isfile(audio_file_path):
+        raise FileNotFoundError(f"No such file: '{audio_file_path}'")
+        
+    source = AudioSegment.from_mp3(audio_file_path)
+    whisper_fname = os.path.splitext(os.path.basename(audio_file_path))[0]
+    whisper_transcript_path = f"data/{whisper_fname}.vtt"
+    
+    if source.duration_seconds < chunk_length_min * 60:
+        with open(audio_file_path, "rb") as audio_file:
+            whisper_output = openai.Audio.transcribe("whisper-1", audio_file, response_format="vtt")
+        with open(whisper_transcript_path, "w") as f:
+            f.write(whisper_output)
+    else:
+        chunk_length = chunk_length_min * 60 * 1000  # PyDub works in milliseconds
+        transcriptions = []
+        for i, chunk in enumerate(source[::chunk_length]):
+            chunk_file_path = f"chunk_{i}.mp3"
+            with open(chunk_file_path, "wb") as chunk_file:
+                chunk.export(chunk_file, format="mp3")
+            with open(chunk_file_path, "rb") as chunk_file:
+                chunk_transcription = openai.Audio.transcribe("whisper-1", chunk_file, response_format="vtt")
+                transcriptions.append(chunk_transcription)
+            os.remove(chunk_file_path)  # remove the chunk file after use
+
+        # Combine the transcriptions of all chunks
+        combined_transcription = "\n".join(transcriptions)
+        with open(whisper_transcript_path, "w") as f:
+            f.write(combined_transcription)
+
+    return whisper_fname
+
+
 
 def convert_vtt_to_csv(TRANSCRIPT_PATH, TRANSCRIPT_FNAME_VTT, TRANSCRIPT_FNAME_CSV):
     """
@@ -17,7 +115,7 @@ def convert_vtt_to_csv(TRANSCRIPT_PATH, TRANSCRIPT_FNAME_VTT, TRANSCRIPT_FNAME_C
         for line_idx in range(0, len(clean_lines)-1, 2):
             timestamp = clean_lines[line_idx].split('-->')[0].strip()
             # Remove milliseconds
-            timestamp = timestamp.split('.')[0]
+            #timestamp = timestamp.split('.')[0]
             # Standardize timestamp format
             timestamp = "00:" + timestamp if len(timestamp.split(':')) < 3 else timestamp
             timestamp = "0" + timestamp if len(timestamp.split(':')[0]) < 2 else timestamp

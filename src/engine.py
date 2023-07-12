@@ -8,6 +8,23 @@ import pandas as pd
 from collections import Counter 
 from wordcloud import WordCloud 
 import matplotlib.pyplot as plt
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import CSVLoader 
+from langchain.vectorstores import DocArrayInMemorySearch
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
+from langchain.chains.summarize import load_summarize_chain
+from langchain.prompts import PromptTemplate
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate
+)
+from langchain.chains import create_extraction_chain
+from langchain.chains import LLMChain
+
 
 # load a pipeline package by name and return nlp object
 nlp = spacy.load("en_core_web_trf", disable=["tok2vec","parser"])
@@ -147,3 +164,159 @@ def generate_word_cloud(data: pd.DataFrame,
 
     # Return the figure
     return fig
+
+
+def load_qa(file, chain_type="stuff", k=5):
+    """
+    Create a QuestionAnswering chain with memory
+
+    :param file: Text file
+    :param chain_type: "stuff", "map_reduce", "refine", "map-rerank"
+    :param max_words: The maximum number of words in the word cloud.
+    :return: A matplotlib Figure object containing the word cloud or a blank plot if no words were found.
+    """
+        
+    # load documents
+    loader = CSVLoader(file_path=file,  encoding='utf-8')
+    documents = loader.load()
+    # split documents
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+    docs = text_splitter.split_documents(documents)
+    # define embedding
+    embeddings = OpenAIEmbeddings()
+    # create vector database from data to use as index
+    db = DocArrayInMemorySearch.from_documents(docs,
+                                                embeddings)
+    
+    #  Keep a buffer of all prior messages 
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    # define retriever
+    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": k})
+    # create a chatbot chain. Memory is managed internally.
+    qa = ConversationalRetrievalChain.from_llm(
+        llm=ChatOpenAI(temperature = 0.0, model_name='gpt-3.5-turbo-0613'), 
+        chain_type=chain_type, 
+        retriever=retriever, 
+        memory=memory
+    )
+    return qa
+
+def run_summarizer(file, chain_type="map_reduce", model_name="gpt-3.5-turbo-0613"):
+    """
+    Create a summarizer chain
+    """
+    # load documents
+    with open(file) as f:
+        full_text = f.read()
+    # split documents
+    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500)
+    splitted_texts = text_splitter.create_documents([full_text])
+    # define embedding
+    map_prompt = """
+    Write a concise summary of the following text delimited by triple backquotes:
+    
+    ```{text}```
+    
+    - Capture the main points, themes, and key takeaways of the text
+    - Ensure to include the most significant arguments, insights, and conclusions drawn from the text.
+    - Ensure to include the timestamp when the spakers started talking about the main point.
+    - Only respond with the timestamp and the concise summary, nothing else. 
+
+    CONCISE SUMMARY:
+    """
+    map_prompt_template = PromptTemplate.from_template(map_prompt) # infer input variables automatically
+
+
+    combine_prompt = """
+    Write a concise summary of the following text delimited by triple backquotes.
+
+    Return your response in bullet points which covers the key points of the text and \
+    the timestamp when the spakers started talking about the main point. 
+    ```{text}```
+    BULLET POINT SUMMARY:
+    """
+    combine_prompt_template = PromptTemplate.from_template(combine_prompt) # infer input variables automatically
+    
+    summary_chain = load_summarize_chain(llm=ChatOpenAI(temperature = 0.0, model_name=model_name),
+                                     chain_type=chain_type,
+                                     map_prompt=map_prompt_template,
+                                     combine_prompt=combine_prompt_template,
+                                      verbose=False
+                                    )
+    episode_summary = summary_chain.run(splitted_texts)
+    return episode_summary
+
+
+def run_extraction_chain(episode_summary, model_name="gpt-3.5-turbo-0613"):
+    """
+    Run extraction chain that extracts structured data from the summary
+    """
+
+    # schema defines the properties you want to find and the expected types and description for those properties. 
+    schema = {
+        "properties": {
+            # Summary of the text
+            "summary": {
+                "type": "string",
+                "description" : "The concise summary of the text"
+            },
+            # Timestamp
+            "timestamp": {
+                "type": "string",
+                "description" : "Timestamp when the spakers started talking about the topic"
+            },
+        },
+        "required": ["summary", "timestamp"],
+    }
+    # Using gpt3.5 here because this is an easy extraction task and no need to jump to gpt4
+    extraction_chain = create_extraction_chain(schema, 
+                                               llm=ChatOpenAI(temperature = 0.0, model_name=model_name))
+    summary_structured = extraction_chain.run(episode_summary)
+
+    return summary_structured
+
+def extract_topics(summary_structured, model_name="gpt-3.5-turbo-0613"):
+    """
+    Extract topics from the structured summary
+    """
+
+    system_template = """
+    You are a helpful assistant that helps retrieve topics talked about in a short text
+    - You will be given a text
+    - Your goal is to find the topic talked about in the text 
+    - Only respond with the topic in 2 or 3 words, nothing else
+    """
+    system_prompt = SystemMessagePromptTemplate.from_template(system_template)
+
+    human_template="Text: {text}" # Simply just pass the text as a human message
+    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
+    messages = [
+        system_prompt,
+        human_message_prompt,
+    ]
+    topic_prompt = ChatPromptTemplate.from_messages(messages)
+    topic_chain = LLMChain(llm=ChatOpenAI(temperature = 0.0, model_name=model_name),
+                           prompt=topic_prompt, 
+                           verbose=False)
+    
+    # Holder for our topic timestamps
+    timestamp_topic_dict = {}
+
+    for element in summary_structured:
+        
+
+        text = f"{element['summary']}"
+        topic = topic_chain.run(text)
+        
+        timestamp_topic_dict[element['timestamp']] = topic
+        
+        # Convert the dictionary to a DataFrame
+        df = pd.DataFrame.from_dict(list(timestamp_topic_dict.items()))
+
+        # Rename the columns
+        df.columns = ['Timestamp', 'Topic']
+
+        # Remove duplicate 'Topic' entries
+        df = df.drop_duplicates(subset="Topic", keep="first")
+    return df
