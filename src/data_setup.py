@@ -41,7 +41,7 @@ def download_audio(link, quality='64'):
             'preferredcodec': 'mp3',
             'preferredquality': quality,
         }],
-        'ffmpeg_location': '.venv/ffmpeg-master-latest-win64-gpl/bin'  # Add this line
+        'ffmpeg_location': '.venv/ffmpeg-master-latest-win64-gpl/bin' 
     }) as video:
         info_dict = video.extract_info(link, download=True)
         video_id = info_dict['id']
@@ -68,7 +68,7 @@ def transcribe_audio(audio_file_path, chunk_length_min=20):
     """
     if not os.path.isfile(audio_file_path):
         raise FileNotFoundError(f"No such file: '{audio_file_path}'")
-        
+
     source = AudioSegment.from_mp3(audio_file_path)
     whisper_fname = os.path.splitext(os.path.basename(audio_file_path))[0]
     whisper_transcript_path = f"data/{whisper_fname}.vtt"

@@ -9,13 +9,14 @@ import spacy
 import textacy
 import numpy as np
 from tqdm import tqdm
+from pydub import AudioSegment
 
-
-st.set_page_config(page_title="Podcast Analyzer", page_icon="🎙️")
 
 # Setup credentials in Streamlit
 user_openai_api_key = st.sidebar.text_input(
-    "OpenAI API Key", type="password", help="Set this to run your own custom videos."
+    "OpenAI API Key", type="password", 
+    help="Set this to run your own custom videos.",
+    key="openai_api_key"
 )
 
 if user_openai_api_key:
@@ -34,13 +35,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Add image 
 st.image(image='imgs\podcast_analyzer.png')
 
-# # Choose input type video or transcript
-# def get_input_type():
-#     input_type = st.radio("Set your input type", label_visibility='collapsed', key="Podcast URL", 
-#                           options=["Podcast Video", "Transcript File"], horizontal = True)
-#     return input_type
-
-# input_type = get_input_type()
+"st.session_state object:", st.session_state
+# When you press abutton, streamlit reruns your script from top to bottom
 
 # Get podcast URL in video or transcript format
 def get_text():
@@ -50,36 +46,41 @@ def get_text():
 podcast_url = get_text()
 
 
-
-# Get podcast transcript
-#here I should download audio and transcripe using WhisperAI from podcast URL
+# Get podcast transcript using Whisper 
 if enable_custom:
     if podcast_url:
         if is_valid_url(podcast_url):
+            
             st.info("Downloading podcast audio...")
-            audio_file_path = download_audio(podcast_url)
+            #audio_file_path = download_audio(podcast_url)
+            if 'audio_file_path' not in st.session_state:
+                st.session_state['audio_file_path'] = download_audio(podcast_url)
             st.info("Audio downloaded... Transcribing in process...")
-            whisper_fname = transcribe_audio(audio_file_path)
+            if 'whisper_fname' not in st.session_state:
+                st.session_state["whisper_fname"] = transcribe_audio(st.session_state.audio_file_path)
             st.success("Transcription completed!")
+
         else:
             st.error('URL is not valid ❌')
             st.stop()
 else:
-    # Download podcast audio
     st.info("No API key provided. Using default podcast audio...\n \
             Or enter your OpenAI API key in the sidebar to use your own podcast audio.")
 
 
-# Convert VTT to CSV
-if enable_custom:
-    TRANSCRIPT_PATH = "./data/"
-    VTT_FILE_NAME = f"{whisper_fname}.vtt"
-    CSV_FILE_NAME = f"{whisper_fname}.csv"
-else:
+# If OpenAI API key is provided, use the custom transcript
+if enable_custom and 'whisper_fname' in st.session_state:
+        TRANSCRIPT_PATH = "./data/"
+        VTT_FILE_NAME = f"{st.session_state.whisper_fname}.vtt"
+        CSV_FILE_NAME = f"{st.session_state.whisper_fname}.csv"
+# Otherwise, use the default transcript
+else:    
     TRANSCRIPT_PATH = "./data/transcripts/"
     VTT_FILE_NAME = "45_michio_kaku__future_of_humans_aliens_space_travel_and_physics.vtt"
     CSV_FILE_NAME = "45_michio_kaku__future_of_humans_aliens_space_travel_and_physics.csv"
 
+
+# Convert VTT to CSV
 convert_vtt_to_csv(TRANSCRIPT_PATH, VTT_FILE_NAME, CSV_FILE_NAME)
 
 # Read CSV transcript
