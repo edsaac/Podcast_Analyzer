@@ -1,3 +1,4 @@
+from pathlib import Path
 import streamlit as st
 from src.utils import *
 from src.data_setup import *
@@ -33,7 +34,14 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # Add image 
-st.image(image='imgs\podcast_analyzer.png')
+# Get the path to the directory containing this script
+script_dir = Path(__file__).parent
+
+# Construct a path to the image file
+image_path = script_dir / 'imgs' / 'podcast_analyzer.png'
+
+# Use the image path in st.image
+st.image(image=str(image_path))
 
 "st.session_state object:", st.session_state
 # When you press abutton, streamlit reruns your script from top to bottom
