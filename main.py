@@ -6,11 +6,6 @@ from src.engine import *
 import openai
 from dotenv import load_dotenv, find_dotenv
 import os
-import spacy
-import textacy
-import numpy as np
-from tqdm import tqdm
-from pydub import AudioSegment
 
 
 # Setup credentials in Streamlit
