@@ -38,7 +38,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 script_dir = Path(__file__).parent
 
 # Construct a path to the image file
-image_path = script_dir / 'imgs' / 'podcast_analyzer.png'
+image_path = script_dir / 'imgs' / 'podcast_analyzer.PNG'
 
 # Use the image path in st.image
 st.image(image=str(image_path))
