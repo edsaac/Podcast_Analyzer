@@ -4,7 +4,7 @@ Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze t
 
 You can access a live demo of the app [here](https://podcastmaster.streamlit.app/).
 
-<center><img src="imgs/live_demo.gif" width="500" height="400"/></center>
+<div style="text-align:center;"><img src="imgs/live_demo.gif" width="500" height="400"/></div>
 
 ## Features
 
