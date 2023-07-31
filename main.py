@@ -8,6 +8,7 @@ from dotenv import load_dotenv, find_dotenv
 import os
 
 
+
 # Setup credentials in Streamlit
 user_openai_api_key = st.sidebar.text_input(
     "OpenAI API Key", type="password", 
