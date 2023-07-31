@@ -1,4 +1,6 @@
+Sure, I can add the application link to your README file. Here's how you can do it:
 
+```markdown
 # Podcast Analyzer
 
 Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze the content of podcasts. 
@@ -8,14 +10,14 @@ Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze t
 The app has the following features:
 
 1. **YouTube Link Input**: Enter a YouTube link and get the content transcribed using the Whisper ASR API (requires OpenAI API key).
-
 2. **Transcription Display**: View the transcription of your podcast audio file, segmented and timestamped.
-
 3. **Named Entity Recognition**: Select the types of named entities you want to identify in the text, and visualize them using word clouds.
-
 4. **Question Answering**: Ask questions about the content of your podcast and get answers using a QA model.
-
 5. **Summarization and Topic Modeling**: Get a summary of your podcast content and extract the main topics discussed.
+
+## Live Demo
+
+You can access a live demo of the app [here](https://podcastmaster.streamlit.app/).
 
 ## Setup
 
@@ -47,7 +49,5 @@ Feel free to fork this repository, create a branch, add commits, and open a pull
 ## License
 
 This project is under the [MIT License](LICENSE).
+```
 
----
-
-I recommend saving this content into a README.md file in your project's root directory.
