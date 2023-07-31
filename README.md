@@ -1,6 +1,3 @@
-Sure, I can add the application link to your README file. Here's how you can do it:
-
-```markdown
 # Podcast Analyzer
 
 Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze the content of podcasts. 
@@ -49,5 +46,5 @@ Feel free to fork this repository, create a branch, add commits, and open a pull
 ## License
 
 This project is under the [MIT License](LICENSE).
-```
+
 
