@@ -16,7 +16,7 @@ The app has the following features:
 
 You can access a live demo of the app [here](https://podcastmaster.streamlit.app/).
 
-<center><img src="imgs/live_demo.gif" width="900" height="400"/></center>
+<center><img src="imgs/live_demo.gif" width="500" height="400"/></center>
 
 
 ## Setup
