@@ -2,6 +2,10 @@
 
 Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze the content of podcasts. 
 
+You can access a live demo of the app [here](https://podcastmaster.streamlit.app/).
+
+<center><img src="imgs/live_demo.gif" width="500" height="400"/></center>
+
 ## Features
 
 The app has the following features:
@@ -11,12 +15,6 @@ The app has the following features:
 3. **Named Entity Recognition**: Select the types of named entities you want to identify in the text, and visualize them using word clouds.
 4. **Question Answering**: Ask questions about the content of your podcast and get answers using a QA model.
 5. **Summarization and Topic Modeling**: Get a summary of your podcast content and extract the main topics discussed.
-
-## Live Demo
-
-You can access a live demo of the app [here](https://podcastmaster.streamlit.app/).
-
-<center><img src="imgs/live_demo.gif" width="500" height="400"/></center>
 
 
 ## Setup
