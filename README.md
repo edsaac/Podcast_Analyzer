@@ -7,7 +7,7 @@ Podcast Analyzer is a tool built with Streamlit, Whisper, LangChain to analyze t
 
 The app has the following features:
 
-1. **Audio File Uploader**: Upload your audio file and get it transcribed using the Whisper ASR API (requires OpenAI API key).
+1. **YouTube Link Input**: Enter a YouTube link and get the content transcribed using the Whisper ASR API (requires OpenAI API key).
 
 2. **Transcription Display**: View the transcription of your podcast audio file, segmented and timestamped.
 
