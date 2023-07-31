@@ -41,7 +41,7 @@ def download_audio(link, quality='64'):
             'preferredcodec': 'mp3',
             'preferredquality': quality,
         }],
-        'ffmpeg_location': "" 
+        'ffmpeg_location': "/usr/bin/ffmpeg" 
     }) as video:
         info_dict = video.extract_info(link, download=True)
         video_id = info_dict['id']
